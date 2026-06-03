@@ -217,6 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 notes.md
+project_milestone.md
 
 # IDE Specific Configurations
 .idea/
