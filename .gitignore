@@ -218,6 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 notes.md
 project_milestone.md
+features.png
 
 # IDE Specific Configurations
 .idea/
