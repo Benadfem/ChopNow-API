@@ -1,18 +1,21 @@
 from fastapi import FastAPI
+from typing import Optional
 
 app = FastAPI(
     title="ChopNow-API",
-    description="Production-ready, asynchronous food delivery backend gateway",
-    version="1.0.0"
+    version="1.0.0",
+    description="A food delivery service that utilises all the complex features",
 )
 
-@app.get("/") #the route for the home/root path
-async def read_root():
-    return {"status": "healthy",
-        "service": "ChopNow-API Core Engine",
-        "docs_url": "/docs"
-            }
+@app.get("/")
+async def root():
+    return {
+        "message": "Hello World",
+    }
 
-@app.get("/greet/{name}")
-async def greet(name: str) -> dict:
-    return {"message": f"Hello, {name.upper()}!"}
+@app.get("/greet/")
+async def greet( name: Optional[str] = "User" ,title : str ="George") -> dict:
+    return {
+        "message": f"Hello {name}!",
+        "title": title,
+    }
