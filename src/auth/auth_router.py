@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, dependencies
+from fastapi import APIRouter, status
 from src.auth.schemas import UserCreate, UserResponse,UserLogin  # Clean relative import
 
 # We define the router with a prefix so all routes inside automatically start with /auth
@@ -7,19 +7,27 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
+#let's create a demo lists of users
+users = []
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate):
     # Simulated response matching the UserResponse schema shape
-    return {
-        "id": 1,
+    response = {
+        "id": len(users) + 1,
         "email": user_in.email,
         "full_name": user_in.full_name,
         "role": user_in.role,
         "is_active": True
     }
 
+    users.append(response)
+    return response
 
-
+#It is time to write the code to display the users that has been registered
+@router.get("/users")
+async def get_users():
+    return users
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)

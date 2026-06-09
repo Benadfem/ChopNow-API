@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from typing import Optional
-from pydantic import BaseModel
 
 from src.auth.auth_router import router as auth_router
+from src.orders.orders_router import router as orders_router
+
 
 app = FastAPI(
     title="ChopNow-API",
@@ -12,12 +13,14 @@ app = FastAPI(
 
 # Include the authentication router in the main application loop
 app.include_router(auth_router)
+app.include_router(orders_router)
 @app.get("/")
 async def root():
     return {
         "message": "Hello Welcome to ChopNow-API",
     }
 
+#Using the optional from typing for query parameter
 @app.get("/greet/")
 async def greet( name: Optional[str] = "User" ,title : str ="George") -> dict:
     return {
