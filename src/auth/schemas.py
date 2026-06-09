@@ -1,4 +1,6 @@
 from enum import Enum
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 class UserRole(str, Enum):
@@ -26,3 +28,8 @@ class UserResponse(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    role: Optional[UserRole] = None

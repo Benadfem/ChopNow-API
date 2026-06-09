@@ -47,3 +47,23 @@ async def login_user(credentials: UserLogin):
         "token_type": "bearer",
         "message": f"Successfully logged in as {credentials.email}"
     }
+
+#to update the user profile
+from src.auth.schemas import UserUpdate
+
+
+@router.patch("/users/{email}", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def update_user(email: EmailStr, user_update: UserUpdate):
+    for user in users:
+        if user["email"] == email:
+            # Only update fields that were actually provided in the request body
+            if user_update.full_name is not None:
+                user["full_name"] = user_update.full_name
+            if user_update.role is not None:
+                user["role"] = user_update.role
+            return user
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found for update 😒"
+    )
