@@ -67,3 +67,24 @@ async def update_user(email: EmailStr, user_update: UserUpdate):
         status_code=status.HTTP_404_NOT_FOUND,
         detail="User not found for update 😒"
     )
+
+
+#for user delete endpoint
+@router.delete("/users/{email}", status_code=status.HTTP_200_OK)
+async def deactivate_user(email: EmailStr):
+    for user in users:
+        if user["email"] == email:
+            if not user["is_active"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Account is already deactivated! 🛑"
+                )
+            user["is_active"] = False
+            return {
+                "message": f"User account associated with {email} has been successfully deactivated."
+            }
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found for deactivation 😒"
+    )
