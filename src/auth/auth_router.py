@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, HTTPException
+from pydantic import EmailStr
+
 from src.auth.schemas import UserCreate, UserResponse,UserLogin  # Clean relative import
 
 # We define the router with a prefix so all routes inside automatically start with /auth
@@ -28,7 +30,14 @@ async def register_user(user_in: UserCreate):
 @router.get("/users")
 async def get_users():
     return users
-
+#let's try to fetch user according to email_address.
+@router.get("/users/{email}",response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def get_user(email: EmailStr):
+    for user in users:
+        if user["email"] == email:
+            return user
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                        detail="User not found😒")
 
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(credentials: UserLogin):
