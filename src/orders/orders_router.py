@@ -5,7 +5,7 @@ router = APIRouter(
     tags=["Orders"]
 )
 
-#lets create an endpoint for the router
+#let's create an endpoint for the router
 @router.get("/orders")
 async def orders() -> dict :
     return {
