@@ -2,6 +2,11 @@ from fastapi import APIRouter, status, HTTPException
 from pydantic import EmailStr
 
 from src.auth.schemas import UserCreate, UserResponse,UserLogin  # Clean relative import
+from src.db.session import get_db
+from src.models.user import User
+from src.auth.utils import hash_password
+
+
 
 # We define the router with a prefix so all routes inside automatically start with /auth
 router = APIRouter(
@@ -9,22 +14,35 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-#let's create a demo lists of users
-users = []
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate):
-    # Simulated response matching the UserResponse schema shape
-    response = {
-        "id": len(users) + 1,
-        "email": user_in.email,
-        "full_name": user_in.full_name,
-        "role": user_in.role,
-        "is_active": True
-    }
+async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    # 1. Check if the user already exists in the database
+    query = select(User).where(User.email == user_in.email)
+    result = await db.execute(query)
+    existing_user = result.scalar_one_or_none()
 
-    users.append(response)
-    return response
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email address already exists."
+        )
+
+    # 2. Hash the raw incoming password payload
+    secure_hashed_password = hash_password(user_in.password)
+
+    # 3. Instantiate the SQLAlchemy database Model
+    new_user = User(
+        email=user_in.email,
+        hashed_password=secure_hashed_password
+    )
+
+    # 4. Save to database using async lifecycle operations
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    return new_user
 
 #It is time to write the code to display the users that has been registered
 @router.get("/")
