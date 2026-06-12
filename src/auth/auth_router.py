@@ -27,7 +27,7 @@ async def register_user(user_in: UserCreate):
     return response
 
 #It is time to write the code to display the users that has been registered
-@router.get("/users")
+@router.get("/")
 async def get_users():
     return users
 #let's try to fetch user according to email_address.

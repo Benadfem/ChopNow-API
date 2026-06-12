@@ -6,7 +6,7 @@ router = APIRouter(
 )
 
 #let's create an endpoint for the router
-@router.get("/orders")
+@router.get("/")
 async def orders() -> dict :
     return {
         "Message": "Wait! Orders will soon be created "
