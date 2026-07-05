@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 from sqlalchemy import String, Boolean, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-# Import your central registry tracking base and your schema roles enum
-from src.db.session import Base
-from src.auth.schemas import UserRole
+# Perfected paths matching your active PyCharm directory layout
+from database import Base
+from auth.schemas import UserRole
 
 
 class User(Base):

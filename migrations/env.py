@@ -1,27 +1,28 @@
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config, create_async_engine
-
+from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 
-# 1. IMPORT YOUR CORE INFRASTRUCTURE PIPELINES
-from src.db.base import Base
-from src.db.config import db_settings
+# 1. Inject the 'src' directory into the Python path so Alembic can find your modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# 2. Import your Base metadata, models, and system configuration variables
+from database import Base
+from auth.models import User  # Forces the User model to register in memory
+from config import settings as db_settings  # Adjust this import name to match where your config class resides
+
+# This is the config object, which provides access to the values within the .ini file in use.
 config = context.config
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 2. BIND YOUR METADATA REGISTRY FOR AUTOGENERATE SUPPORT
-# Points Alembic directly to your SQLAlchemy 2.0 type-hinted data models
+# 3. Point target_metadata directly to your combined Base metadata registry
 target_metadata = Base.metadata
 
 
@@ -40,7 +41,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection: Connection) -> None:
+def do_run_migrations(connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -49,9 +50,9 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
-    and associate a connection with the context.
-    """
-    # Explicitly spawn the engine utilizing your Pydantic settings database URL
+    and associate a connection with the context."""
+
+    # Explicitly spawn the engine utilizing your settings database URL
     connectable = create_async_engine(
         db_settings.ASYNC_DATABASE_URL,
         poolclass=pool.NullPool,
