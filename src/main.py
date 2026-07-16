@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Depends
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-# Corrected local imports based on main.py being inside the src/ directory
-from database import get_db
-from auth.auth_router import router as auth_router
-from orders.orders_router import router as orders_router
+# Import exclusively from your clean async layer
+from src.db.session import get_db
+from src.auth.auth_router import router as auth_router
+from src.orders.orders_router import router as orders_router
 
 app = FastAPI(
     title="ChopNow-API",
@@ -31,11 +31,12 @@ async def greet(name: Optional[str] = "User", title: str = "George") -> dict:
         "title": title,
     }
 
+# Converted completely to non-blocking async execution
 @app.get("/db-test")
-def test_db_connection(db: Session = Depends(get_db)):
+async def test_db_connection(db: AsyncSession = Depends(get_db)):
     try:
-        # Utilizing text() prevents modern SQLAlchemy execution errors
-        db.execute(text("SELECT 1"))
-        return {"status": "success", "message": "Successfully connected to the Docker PostgreSQL database!"}
+        # Awaiting the execution forces it to use the asyncpg driver!
+        await db.execute(text("SELECT 1"))
+        return {"status": "success", "message": "Successfully connected to the Docker PostgreSQL database asynchronously!"}
     except Exception as e:
         return {"status": "error", "message": f"Database connection failed: {str(e)}"}

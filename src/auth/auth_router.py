@@ -1,12 +1,19 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
 from pydantic import EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
-from src.auth.schemas import UserCreate, UserResponse,UserLogin  # Clean relative import
+# Clean async dependency layer
 from src.db.session import get_db
-from src.models.user import User
+
+from src.auth.schemas import UserCreate, UserResponse, UserLogin
+from src.auth.models import User
 from src.auth.utils import hash_password
 
 
+
+users = []
+#
 
 # We define the router with a prefix so all routes inside automatically start with /auth
 router = APIRouter(
@@ -16,11 +23,11 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    # 1. Check if the user already exists in the database
-    query = select(User).where(User.email == user_in.email)
+async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    # 1. Query using select() and referencing 'user_data'
+    query = select(User).where(User.email == user_data.email)
     result = await db.execute(query)
-    existing_user = result.scalar_one_or_none()
+    existing_user = result.scalars().first()
 
     if existing_user:
         raise HTTPException(
@@ -28,16 +35,18 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
             detail="An account with this email address already exists."
         )
 
-    # 2. Hash the raw incoming password payload
-    secure_hashed_password = hash_password(user_in.password)
+    # 2. Hash password referencing 'user_data'
+    secure_hashed_password = hash_password(user_data.password)
 
-    # 3. Instantiate the SQLAlchemy database Model
+    # 3. Instantiate model referencing 'user_data'
     new_user = User(
-        email=user_in.email,
-        hashed_password=secure_hashed_password
+        email=user_data.email,
+        full_name=user_data.full_name,
+        hashed_password=secure_hashed_password,
+        role=user_data.role
     )
 
-    # 4. Save to database using async lifecycle operations
+    # 4. Async commit lifecycle
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)

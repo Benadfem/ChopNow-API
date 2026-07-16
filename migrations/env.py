@@ -1,35 +1,35 @@
 import asyncio
-import os
-import sys
 from logging.config import fileConfig
-
 from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
 from alembic import context
 
-# 1. Inject the 'src' directory into the Python path so Alembic can find your modules
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+# 1. Import your Pydantic settings and database Base
+from src.db.config import db_settings
 
-# 2. Import your Base metadata, models, and system configuration variables
-from database import Base
-from auth.models import User  # Forces the User model to register in memory
-from config import settings as db_settings  # Adjust this import name to match where your config class resides
+# --- FIX THE IMPORTS HERE ---
+from src.db.base import Base  # Pull Base from base.py, not session.py!
+# ----------------------------
 
-# This is the config object, which provides access to the values within the .ini file in use.
+
+# This is the Alembic Config object
 config = context.config
 
-# Interpret the config file for Python logging.
+# Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 3. Point target_metadata directly to your combined Base metadata registry
+# 2. Dynamically inject your Pydantic Async URL into Alembic
+config.set_main_option("sqlalchemy.url", db_settings.ASYNC_DATABASE_URL)
+
+# 3. Set your target metadata so autogenerate detects your models
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    # Dynamically read your secure asyncpg URL instead of hardcoding it in alembic.ini
-    url = db_settings.ASYNC_DATABASE_URL
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -41,35 +41,32 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection) -> None:
+# 4. Update the online migration helper to run asynchronously
+def do_run_migrations(connection):
     context.configure(connection=connection, target_metadata=target_metadata)
-
     with context.begin_transaction():
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context."""
+async def run_migrations_online() -> None:
+    """Run migrations in 'online' mode using an async engine."""
+    configuration = config.get_section(config.config_ini_section) or {}
 
-    # Explicitly spawn the engine utilizing your settings database URL
-    connectable = create_async_engine(
-        db_settings.ASYNC_DATABASE_URL,
+    connectable = async_engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     async with connectable.connect() as connection:
+        # run_sync bridges the async connection into Alembic's sync environment
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
 
 
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
-    asyncio.run(run_async_migrations())
-
-
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    # 5. Execute the async loop runner
+    asyncio.run(run_migrations_online())
